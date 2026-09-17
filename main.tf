@@ -188,7 +188,15 @@ resource "aws_instance" "this" {
 
   lifecycle {
     ignore_changes = [
-      ami
+      ami,
+      # volume_tags is only applied at instance creation, and the provider reads
+      # it back from EVERY volume attached to the instance. Attach a
+      # separately-managed aws_ebs_volume via aws_volume_attachment and the
+      # refresh picks up that volume's own tags, then plans to strip them -
+      # the "resource cycling" the aws_instance docs warn about. Ignoring it
+      # here costs nothing (it cannot be changed after creation anyway) and
+      # stops the instance deleting tags it does not own.
+      volume_tags
     ]
   }
 
@@ -373,7 +381,15 @@ resource "aws_instance" "ignore_ami" {
 
   lifecycle {
     ignore_changes = [
-      ami
+      ami,
+      # volume_tags is only applied at instance creation, and the provider reads
+      # it back from EVERY volume attached to the instance. Attach a
+      # separately-managed aws_ebs_volume via aws_volume_attachment and the
+      # refresh picks up that volume's own tags, then plans to strip them -
+      # the "resource cycling" the aws_instance docs warn about. Ignoring it
+      # here costs nothing (it cannot be changed after creation anyway) and
+      # stops the instance deleting tags it does not own.
+      volume_tags
     ]
   }
 }
@@ -541,6 +557,19 @@ resource "aws_spot_instance_request" "this" {
 
   tags        = merge({ "Name" = var.name }, var.instance_tags, var.tags)
   volume_tags = var.enable_volume_tags ? merge({ "Name" = var.name }, var.volume_tags) : null
+
+  lifecycle {
+    ignore_changes = [
+      # volume_tags is only applied at instance creation, and the provider reads
+      # it back from EVERY volume attached to the instance. Attach a
+      # separately-managed aws_ebs_volume via aws_volume_attachment and the
+      # refresh picks up that volume's own tags, then plans to strip them -
+      # the "resource cycling" the aws_instance docs warn about. Ignoring it
+      # here costs nothing (it cannot be changed after creation anyway) and
+      # stops the instance deleting tags it does not own.
+      volume_tags
+    ]
+  }
 }
 
 ################################################################################
